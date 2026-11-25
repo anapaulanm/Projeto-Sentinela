@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fcf4f1">
+  <title>Oasis Hospital | Medicações</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header class="site-header">
+  <a class="brand" href="medico.html" aria-label="Oasis Hospital, painel médico">
+    <img src="logo.png" alt="">
+    <span><span class="brand-name">OASIS</span><span class="brand-subtitle">Hospital</span></span>
+  </a>
+  <span class="page-kicker">Equipe médica</span>
+  <a class="header-link" href="index.html">Sair</a>
+</header>
+
+<div class="container">
+
+  <span class="page-kicker">Acompanhamento clínico</span>
+  <h2>Medicações prescritas</h2>
+  <button type="button" onclick="window.location.href='almoxarifado.html'">Acessar almoxarifado</button>
+
+  <div id="listaMedicacoes"></div>
+
+</div>
+
+<script>
+
+function carregarMedicacoesPrescritas() {
+  const div = document.getElementById("listaMedicacoes");
+  fetch("/medicacoes", { cache: "no-store" })
+    .then(r => {
+      if (!r.ok) throw new Error("Não foi possível carregar as medicações prescritas.");
+      return r.json();
+    })
+    .then(data => {
+      div.innerHTML = "";
+
+      if (!data.length) {
+        div.textContent = "Nenhuma medicação prescrita.";
+        return;
+      }
+
+      data.forEach(c => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const title = document.createElement("h3");
+        title.textContent = c.paciente || "Paciente";
+        card.appendChild(title);
+        [
+          ["CPF", c.cpf || "Não informado"],
+          ["Medicação", c.medicacao],
+          ["Diagnóstico", c.diagnostico]
+        ].forEach(([label, value]) => {
+          const paragraph = document.createElement("p");
+          const bold = document.createElement("b");
+          bold.textContent = `${label}: `;
+          paragraph.append(bold, document.createTextNode(value || "Não informado"));
+          card.appendChild(paragraph);
+        });
+
+        const status = document.createElement("p");
+        status.setAttribute("aria-live", "polite");
+        const button = document.createElement("button");
+        button.type = "button";
+        if (c.medicacaoRecebidaEm) {
+          const confirmadaEm = new Date(c.medicacaoRecebidaEm);
+          status.textContent = Number.isNaN(confirmadaEm.getTime())
+            ? "Medicação confirmada como recebida."
+            : `Medicação confirmada como recebida em ${confirmadaEm.toLocaleString("pt-BR")}.`;
+          button.textContent = "Medicação recebida";
+          button.disabled = true;
+        } else {
+          button.textContent = "Confirmar recebimento";
+          button.addEventListener("click", async () => {
+            button.disabled = true;
+            status.textContent = "Salvando confirmação...";
+            try {
+              const response = await fetch(`/medicacoes/${encodeURIComponent(c.id)}/recebida`, {
+                method: "POST"
+              });
+              const result = await response.json();
+              if (!response.ok) {
+                throw new Error(result.erro || "Não foi possível confirmar o recebimento.");
+              }
+              carregarMedicacoesPrescritas();
+            } catch (error) {
+              status.textContent = error.message;
+              button.disabled = false;
+            }
+          });
+        }
+        card.append(status, button);
+        div.appendChild(card);
+      });
+    })
+    .catch(error => {
+      div.textContent = error.message;
+    });
+}
+
+carregarMedicacoesPrescritas();
+window.setInterval(carregarMedicacoesPrescritas, 5000);
+
+</script>
+
+</body>
+</html>

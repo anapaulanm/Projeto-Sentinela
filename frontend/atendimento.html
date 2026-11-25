@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fcf4f1">
+  <title>Oasis Hospital | Atendimento</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .attendance-form h3 {
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="atendimento.html" aria-label="Oasis Hospital, atendimento">
+    <img src="logo.png" alt="">
+    <span><span class="brand-name">OASIS</span><span class="brand-subtitle">Hospital</span></span>
+  </a>
+  <span class="page-kicker">Recepção</span>
+  <a class="header-link" href="index.html">Sair</a>
+</header>
+<main class="container">
+  <span class="page-kicker">Estamos aqui para ajudar</span>
+  <h2>Atendimento</h2>
+  <p>Escolha uma opção para continuar.</p>
+
+  <div class="attendance-options" role="tablist" aria-label="Opções de atendimento">
+    <button id="registrationTab" class="active" type="button" role="tab" aria-selected="true" aria-controls="registrationForm">Primeiro cadastro</button>
+    <button id="loginTab" type="button" role="tab" aria-selected="false" aria-controls="loginForm">Já tenho cadastro</button>
+  </div>
+
+  <form id="registrationForm" class="attendance-form" role="tabpanel" aria-labelledby="registrationTab">
+    <h3>Cadastro do paciente</h3>
+    <label>Nome completo
+      <input id="nome" name="nome" autocomplete="name" required>
+    </label>
+    <label>CPF
+      <input id="cpf" name="cpf" inputmode="numeric" autocomplete="off" required>
+    </label>
+    <label>Data de nascimento
+      <input id="dataNascimento" name="dataNascimento" type="date" required>
+    </label>
+
+    <div id="adultFields" class="conditional-field">
+      <label>Nome da mãe
+        <input id="nomeMae" name="nomeMae" autocomplete="off" required>
+      </label>
+      <label>Estado civil
+        <select id="estadoCivil" name="estadoCivil" required>
+          <option value="">Selecione</option>
+          <option value="Solteiro(a)">Solteiro(a)</option>
+          <option value="Casado(a)">Casado(a)</option>
+          <option value="Divorciado(a)">Divorciado(a)</option>
+          <option value="Viúvo(a)">Viúvo(a)</option>
+          <option value="União estável">União estável</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="minorFields" class="conditional-field" hidden>
+      <label>Nome dos pais ou responsáveis
+        <input id="responsaveis" name="responsaveis" autocomplete="off" disabled>
+      </label>
+    </div>
+
+    <label>Gênero
+      <select id="sexo" name="sexo" required>
+        <option value="">Selecione</option>
+        <option value="Feminino">Feminino</option>
+        <option value="Masculino">Masculino</option>
+        <option value="Outro">Outro</option>
+        <option value="Prefiro não informar">Prefiro não informar</option>
+      </select>
+    </label>
+    <label>Número de telefone
+      <input id="telefone" name="telefone" type="tel" autocomplete="tel" required>
+    </label>
+    <label>Contato de emergência
+      <input id="contatoEmergencia" name="contatoEmergencia" type="tel" required>
+    </label>
+    <label>Convênio ou particular
+      <select id="tipo" name="tipo" required>
+        <option value="">Selecione</option>
+        <option value="Convenio">Convênio</option>
+        <option value="Particular">Particular</option>
+      </select>
+    </label>
+    <label>Endereço
+      <input id="endereco" name="endereco" autocomplete="street-address" required>
+    </label>
+    <p id="registrationMessage" class="attendance-message" aria-live="polite"></p>
+    <button id="registerButton" type="submit">Cadastrar paciente</button>
+  </form>
+
+  <form id="loginForm" class="attendance-form" role="tabpanel" aria-labelledby="loginTab" hidden>
+    <h3>Acesso de paciente cadastrado</h3>
+    <label>CPF
+      <input id="loginCpf" name="cpf" inputmode="numeric" autocomplete="username" required>
+    </label>
+    <label>Senha
+      <input id="loginPassword" name="password" type="password" inputmode="numeric" autocomplete="current-password" required>
+    </label>
+    <p>A senha de acesso é 1234.</p>
+    <p id="loginMessage" class="attendance-message" aria-live="polite"></p>
+    <button id="loginButton" type="submit">Confirmar</button>
+  </form>
+</main>
+
+<script>
+const registrationForm = document.getElementById("registrationForm");
+const loginForm = document.getElementById("loginForm");
+const registrationTab = document.getElementById("registrationTab");
+const loginTab = document.getElementById("loginTab");
+const birthDateInput = document.getElementById("dataNascimento");
+const adultFields = document.getElementById("adultFields");
+const minorFields = document.getElementById("minorFields");
+
+function mostrarFormulario(formulario) {
+  const mostrarCadastro = formulario === "cadastro";
+  registrationForm.hidden = !mostrarCadastro;
+  loginForm.hidden = mostrarCadastro;
+  registrationTab.classList.toggle("active", mostrarCadastro);
+  loginTab.classList.toggle("active", !mostrarCadastro);
+  registrationTab.setAttribute("aria-selected", String(mostrarCadastro));
+  loginTab.setAttribute("aria-selected", String(!mostrarCadastro));
+}
+
+function atualizarCamposPorIdade() {
+  if (!birthDateInput.value) {
+    adultFields.hidden = false;
+    minorFields.hidden = true;
+    document.getElementById("nomeMae").disabled = false;
+    document.getElementById("estadoCivil").disabled = false;
+    document.getElementById("responsaveis").disabled = true;
+    return;
+  }
+
+  const nascimento = new Date(`${birthDateInput.value}T00:00:00`);
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const aindaNaoFezAniversario =
+    hoje.getMonth() < nascimento.getMonth() ||
+    (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate());
+  if (aindaNaoFezAniversario) idade -= 1;
+
+  const menor = idade < 18;
+  adultFields.hidden = menor;
+  minorFields.hidden = !menor;
+  document.getElementById("nomeMae").disabled = menor;
+  document.getElementById("estadoCivil").disabled = menor;
+  document.getElementById("responsaveis").disabled = !menor;
+  document.getElementById("nomeMae").required = !menor;
+  document.getElementById("estadoCivil").required = !menor;
+  document.getElementById("responsaveis").required = menor;
+}
+
+async function enviarFormulario(url, dados, mensagemId, botaoId, mensagemSucesso, formularioParaLimpar) {
+  const mensagem = document.getElementById(mensagemId);
+  const botao = document.getElementById(botaoId);
+  mensagem.textContent = "";
+  botao.disabled = true;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados)
+    });
+    const resultado = await response.json();
+    if (!response.ok) throw new Error(resultado.erro || "Não foi possível concluir o atendimento.");
+    formularioParaLimpar.reset();
+    if (formularioParaLimpar === registrationForm) {
+      atualizarCamposPorIdade();
+    }
+    mensagem.textContent = mensagemSucesso;
+    botao.disabled = false;
+  } catch (error) {
+    mensagem.textContent = error.message;
+    botao.disabled = false;
+  }
+}
+
+registrationTab.addEventListener("click", () => mostrarFormulario("cadastro"));
+loginTab.addEventListener("click", () => mostrarFormulario("login"));
+birthDateInput.addEventListener("change", atualizarCamposPorIdade);
+
+registrationForm.addEventListener("submit", event => {
+  event.preventDefault();
+  atualizarCamposPorIdade();
+
+  const dados = {
+    nome: document.getElementById("nome").value.trim(),
+    cpf: document.getElementById("cpf").value.trim(),
+    dataNascimento: birthDateInput.value,
+    sexo: document.getElementById("sexo").value,
+    nomeMae: document.getElementById("nomeMae").value.trim(),
+    responsaveis: document.getElementById("responsaveis").value.trim(),
+    estadoCivil: document.getElementById("estadoCivil").value,
+    tipo: document.getElementById("tipo").value,
+    telefone: document.getElementById("telefone").value.trim(),
+    contatoEmergencia: document.getElementById("contatoEmergencia").value.trim(),
+    endereco: document.getElementById("endereco").value.trim()
+  };
+
+  enviarFormulario(
+    "/atendimento",
+    dados,
+    "registrationMessage",
+    "registerButton",
+    "Cadastro realizado com sucesso.",
+    registrationForm
+  );
+});
+
+loginForm.addEventListener("submit", event => {
+  event.preventDefault();
+  enviarFormulario(
+    "/atendimento/login",
+    {
+      cpf: document.getElementById("loginCpf").value.trim(),
+      senha: document.getElementById("loginPassword").value
+    },
+    "loginMessage",
+    "loginButton",
+    "Cadastro localizado e confirmado no sistema.",
+    loginForm
+  );
+});
+</script>
+</body>
+</html>

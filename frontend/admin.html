@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fcf4f1">
+    <title>Oasis Hospital | Administração</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside class="sidebar">
+            <div class="brand-box">
+                <img class="brand-logo" src="logo.png" alt="">
+                <div>
+                    <strong>OASIS</strong>
+                    <small>Gestão integrada</small>
+                </div>
+            </div>
+
+            <nav class="side-nav">
+                <a class="active" href="#">Dashboard</a>
+                <a href="#usuarios">Usuários</a>
+                <a href="triagem.html">Triagem</a>
+                <a href="medico.html">Médico</a>
+                <a href="atendimento.html">Atendimento</a>
+                <a href="medicacoes.html">Medicações</a>
+                <a href="almoxarifado.html">Almoxarifado</a>
+            </nav>
+        </aside>
+
+        <main class="admin-main">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Visão geral</p>
+                    <h1>Dashboard administrativo</h1>
+                    <p class="updated-at" id="updatedAt" aria-live="polite">Carregando indicadores...</p>
+                </div>
+                <button class="ghost-btn" onclick="window.location.href='index.html'">Sair</button>
+            </header>
+
+            <section class="stats-grid">
+                <div class="stat-card blue">
+                    <span class="stat-label">Usuários ativos</span>
+                    <strong id="usuariosAtivos">0</strong>
+                </div>
+                <div class="stat-card green">
+                    <span class="stat-label">Pacientes em fila</span>
+                    <strong id="pacientesFila">0</strong>
+                </div>
+                <div class="stat-card orange">
+                    <span class="stat-label">Triagens hoje</span>
+                    <strong id="triagensHoje">0</strong>
+                </div>
+                <div class="stat-card purple">
+                    <span class="stat-label">Consultas realizadas</span>
+                    <strong id="consultasRealizadas">0</strong>
+                </div>
+            </section>
+
+            <section class="charts-grid" aria-label="Indicadores gráficos">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Atividade da semana</h2>
+                            <p>Triagens e consultas nos últimos sete dias</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrap">
+                        <svg id="activityChart" viewBox="0 0 640 220" role="img" aria-label="Gráfico de atividade semanal"></svg>
+                    </div>
+                    <div class="legend">
+                        <span><i></i> Triagens</span>
+                        <span><i class="consults-dot"></i> Consultas</span>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Classificação de risco</h2>
+                            <p>Distribuição das triagens registradas</p>
+                        </div>
+                    </div>
+                    <div class="risk-content">
+                        <div id="riskChart" class="risk-chart" role="img" aria-label="Distribuição por classificação de risco">
+                            <strong id="riskTotal">0</strong>
+                        </div>
+                        <div class="risk-legend">
+                            <div class="risk-item"><span><i class="risk-dot red"></i>Vermelho</span><b id="riskRed">0</b></div>
+                            <div class="risk-item"><span><i class="risk-dot yellow"></i>Amarelo</span><b id="riskYellow">0</b></div>
+                            <div class="risk-item"><span><i class="risk-dot green"></i>Verde</span><b id="riskGreen">0</b></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content-grid">
+                <div class="panel form-panel" id="usuarios">
+                    <div class="panel-header">
+                        <h2>Cadastrar usuário</h2>
+                    </div>
+
+                    <form id="formUsuario" class="user-form">
+                        <label class="sr-only" for="usuario">Nome de usuário</label>
+                        <input type="text" id="usuario" name="usuario" placeholder="Nome de usuário" autocomplete="off" required>
+                        <label class="sr-only" for="senha">Senha</label>
+                        <input type="password" id="senha" name="senha" placeholder="Senha" autocomplete="new-password" required>
+                        <label class="sr-only" for="tipo">Setor do usuário</label>
+                        <select id="tipo" required>
+                            <option value="">Selecione o setor</option>
+                            <option value="atendimento">Atendimento</option>
+                            <option value="triagem">Triagem</option>
+                            <option value="medico">Médico</option>
+                            <option value="tv">TV</option>
+                            <option value="medicacoes">Medicações</option>
+                            <option value="almoxarifado">Almoxarifado</option>
+                        </select>
+                        <button type="submit">Cadastrar usuário</button>
+                    </form>
+                </div>
+
+                <div class="panel table-panel">
+                    <div class="panel-header">
+                        <h2>Usuários cadastrados</h2>
+                    </div>
+                    <div id="listaUsuarios" class="user-list"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function checkResponse(response) {
+            if (!response.ok) throw new Error('Não foi possível carregar os indicadores.');
+            return response.json();
+        }
+
+        function desenharAtividade(series) {
+            const svg = document.getElementById('activityChart');
+            const width = 640;
+            const height = 220;
+            const left = 34;
+            const right = 18;
+            const top = 15;
+            const bottom = 34;
+            const plotHeight = height - top - bottom;
+            const maxValue = Math.max(1, ...series.flatMap(day => [day.triagens, day.consultas]));
+            const x = index => left + index * (width - left - right) / Math.max(1, series.length - 1);
+            const y = value => top + plotHeight - (value / maxValue) * plotHeight;
+            const points = (key, className, dotClass) => {
+                const line = series.map((day, index) => `${x(index)},${y(day[key])}`).join(' ');
+                const dots = series.map((day, index) =>
+                    `<circle class="${dotClass}" cx="${x(index)}" cy="${y(day[key])}" r="4"><title>${day.label}: ${day[key]}</title></circle>`
+                ).join('');
+                return `<polyline class="${className}" points="${line}"/>${dots}`;
+            };
+
+            const grid = [0, 1, 2, 3].map(index => {
+                const lineY = top + index * plotHeight / 3;
+                return `<line class="chart-gridline" x1="${left}" y1="${lineY}" x2="${width - right}" y2="${lineY}"/>`;
+            }).join('');
+            const labels = series.map((day, index) =>
+                `<text class="chart-label" x="${x(index)}" y="${height - 8}" text-anchor="middle">${day.label}</text>`
+            ).join('');
+
+            svg.innerHTML = `${grid}${points('triagens', 'chart-triage', 'chart-dot-triage')}${points('consultas', 'chart-consults', 'chart-dot-consults')}${labels}`;
+        }
+
+        function desenharRiscos(riscos) {
+            const total = riscos.vermelho + riscos.amarelo + riscos.verde;
+            document.getElementById('riskTotal').textContent = total;
+            document.getElementById('riskRed').textContent = riscos.vermelho;
+            document.getElementById('riskYellow').textContent = riscos.amarelo;
+            document.getElementById('riskGreen').textContent = riscos.verde;
+
+            const redEnd = total ? (riscos.vermelho / total) * 100 : 0;
+            const yellowEnd = redEnd + (total ? (riscos.amarelo / total) * 100 : 0);
+            const greenEnd = yellowEnd + (total ? (riscos.verde / total) * 100 : 0);
+            document.getElementById('riskChart').style.background =
+                `conic-gradient(#c9666b 0% ${redEnd}%, #e4b66f ${redEnd}% ${yellowEnd}%, #75a78b ${yellowEnd}% ${greenEnd}%, #f1e8e4 ${greenEnd}% 100%)`;
+        }
+
+        async function carregarDadosResumo() {
+            try {
+                const response = await fetch('/dashboard-summary');
+                const summary = await checkResponse(response);
+
+                document.getElementById('usuariosAtivos').textContent = summary.stats.usuarios;
+                document.getElementById('pacientesFila').textContent = summary.stats.pacientesFila;
+                document.getElementById('triagensHoje').textContent = summary.stats.triagensHoje;
+                document.getElementById('consultasRealizadas').textContent = summary.stats.consultas;
+                document.getElementById('updatedAt').textContent =
+                    `Atualizado às ${new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date())} · atualização automática`;
+                desenharAtividade(summary.semana);
+                desenharRiscos(summary.riscos);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('updatedAt').textContent = 'Não foi possível atualizar os indicadores.';
+            }
+        }
+
+        function carregarUsuarios() {
+            fetch('/usuarios')
+                .then(res => {
+                    if (!res.ok) throw new Error('Não foi possível carregar os usuários.');
+                    return res.json();
+                })
+                .then(usuarios => {
+                    const div = document.getElementById('listaUsuarios');
+                    div.innerHTML = '';
+
+                    usuarios.forEach(u => {
+                        const row = document.createElement('div');
+                        row.className = 'user-item';
+                        const identity = document.createElement('div');
+                        const username = document.createElement('strong');
+                        const role = document.createElement('small');
+                        const badge = document.createElement('span');
+                        username.textContent = u.usuario;
+                        role.textContent = u.tipo;
+                        badge.className = 'badge';
+                        badge.textContent = u.tipo;
+                        identity.append(username, role);
+                        row.append(identity, badge);
+                        div.appendChild(row);
+                    });
+
+                    if (!usuarios.length) {
+                        div.innerHTML = '<p class="empty-state">Nenhum usuário cadastrado.</p>';
+                    }
+                })
+                .catch(error => {
+                    const message = document.createElement('p');
+                    message.className = 'empty-state';
+                    message.textContent = error.message;
+                    document.getElementById('listaUsuarios').replaceChildren(message);
+                });
+        }
+
+        document.getElementById('formUsuario').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const usuario = document.getElementById('usuario').value;
+            const senha = document.getElementById('senha').value;
+            const tipo = document.getElementById('tipo').value;
+
+            fetch('/usuarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario, senha, tipo })
+            })
+                .then(async res => {
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.erro || 'Erro ao cadastrar usuário');
+                    return data;
+                })
+                .then(() => {
+                    alert('Usuário cadastrado com sucesso!');
+                    document.getElementById('formUsuario').reset();
+                    carregarUsuarios();
+                    carregarDadosResumo();
+                })
+                .catch(err => {
+                    alert(err.message || 'Erro ao cadastrar usuário');
+                });
+        });
+
+        carregarUsuarios();
+        carregarDadosResumo();
+        window.setInterval(carregarDadosResumo, 5000);
+    </script>
+</body>
+</html>

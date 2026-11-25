@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fcf4f1">
+  <title>Oasis Hospital | Acesso</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+<header class="site-header">
+  <a class="brand" href="index.html" aria-label="Oasis Hospital, início">
+    <img src="logo.png" alt="">
+    <span>
+      <span class="brand-name">OASIS</span>
+      <span class="brand-subtitle">Hospital</span>
+    </span>
+  </a>
+</header>
+<main class="container login-card">
+  <span class="page-kicker">Cuidado que acolhe</span>
+  <h1>Acesso ao sistema</h1>
+  <p>Entre com suas credenciais para continuar.</p>
+  <form id="formLogin">
+    <input id="usuario" name="usuario" placeholder="Usuário" autocomplete="username" required>
+    <input id="senha" name="senha" type="password" placeholder="Senha" autocomplete="current-password" required>
+    <button type="submit">Entrar</button>
+  </form>
+</main>
+
+<script>
+const paginasPorTipo = {
+  admin: "admin.html",
+  atendimento: "atendimento.html",
+  triagem: "triagem.html",
+  tv: "tv.html",
+  medico: "medico.html",
+  medicacoes: "medicacoes.html",
+  almoxarifado: "almoxarifado.html"
+};
+
+async function login(evento) {
+  evento.preventDefault();
+  const usuario = document.getElementById("usuario").value;
+  const senha = document.getElementById("senha").value;
+
+  try {
+    const response = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usuario, senha })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.erro || "Erro ao fazer login");
+    }
+
+    const pagina = paginasPorTipo[data.tipo];
+    if (!pagina) throw new Error("Este usuário não tem uma página de acesso configurada.");
+    location.href = pagina;
+  } catch (error) {
+    alert(error.message || "Erro ao fazer login");
+  }
+}
+
+document.getElementById("formLogin").addEventListener("submit", login);
+</script>
+</body>
+</html>

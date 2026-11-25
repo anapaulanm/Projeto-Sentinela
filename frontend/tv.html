@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fcf4f1">
+    <title>Oasis Hospital | Chamadas</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            padding: 3vh 2.5vw;
+            background: #fcf4f1;
+            color: #38383a;
+        }
+
+        .tv-container {
+            display: flex;
+            width: 100%;
+            min-height: 94vh;
+            max-width: 1800px;
+            flex-direction: column;
+            margin: 0 auto;
+            overflow: hidden;
+            border: 1px solid #eadfdb;
+            border-radius: 18px;
+            background: #fffdfa;
+            box-shadow: 0 18px 48px rgba(76, 49, 48, .12);
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            z-index: 2;
+            max-width: calc(100vw - 24px);
+            padding: 10px 16px;
+            transform: translateX(-50%);
+            border-radius: 8px;
+            background: #a94343;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .connection-status[hidden] {
+            display: none;
+        }
+
+        .call-panels {
+            display: grid;
+            min-height: 250px;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(20px, 3vw, 44px);
+            color: #fff;
+            text-align: center;
+        }
+
+        .patient-box {
+            background: #d77878;
+        }
+
+        .local-box {
+            background: #bb5c62;
+        }
+
+        .box-title {
+            font-size: clamp(16px, 2vw, 28px);
+            font-weight: 700;
+        }
+
+        .patient-name {
+            margin-top: 8px;
+            font-size: clamp(42px, 5.4vw, 82px);
+            font-weight: 750;
+            line-height: 1.08;
+            overflow-wrap: anywhere;
+        }
+
+        .local-name {
+            margin-top: 8px;
+            font-size: clamp(42px, 5.4vw, 82px);
+            font-weight: 750;
+            line-height: 1.08;
+            overflow-wrap: anywhere;
+        }
+
+        .next-call-message {
+            min-height: 1.5em;
+            margin-top: 12px;
+            color: rgba(255, 255, 255, .9);
+            font-size: clamp(14px, 1.4vw, 20px);
+            font-weight: 600;
+        }
+
+        .history-box {
+            flex: 1;
+            padding: clamp(18px, 2vw, 30px) clamp(18px, 3.5vw, 56px);
+        }
+
+        .history-box .box-title {
+            margin-bottom: 14px;
+            color: #777477;
+            font-size: clamp(22px, 2.4vw, 34px);
+            text-align: center;
+        }
+
+        #history-list li {
+            display: grid;
+            gap: 6px;
+            padding: 14px 16px;
+            border: 1px solid #eadfdb;
+            border-radius: 10px;
+            background: #fffdfa;
+        }
+
+        #history-list {
+            display: grid;
+            width: 100%;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+            align-content: start;
+            gap: 12px;
+            list-style: none;
+        }
+
+        .history-row {
+            display: grid;
+            grid-template-columns: minmax(120px, .8fr) minmax(0, 1.2fr);
+            align-items: baseline;
+            gap: 12px;
+            padding: 5px 0;
+            font-size: clamp(14px, 1.25vw, 18px);
+        }
+
+        .history-label {
+            color: #bb5c62;
+            font-weight: 700;
+        }
+
+        .history-value {
+            color: #38383a;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .history-risk {
+            display: inline-block;
+            width: fit-content;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: #f7e3df;
+            color: #bb5c62;
+            font-size: .9em;
+        }
+
+        .history-risk[data-risk="verde"] {
+            background: #e4f2e9;
+            color: #347456;
+        }
+
+        .history-risk[data-risk="amarelo"] {
+            background: #fff1d5;
+            color: #8e6825;
+        }
+
+        .history-risk[data-risk="vermelho"] {
+            background: #f8e1df;
+            color: #a94343;
+        }
+
+        .history-time {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tv-footer {
+            display: flex;
+            min-height: 58px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 12px clamp(18px, 3vw, 44px);
+            background: #d77878;
+            color: #fff;
+            font-size: clamp(13px, 1.2vw, 17px);
+            font-weight: 600;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            letter-spacing: .08em;
+        }
+
+        .brand img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .triage-link {
+            padding: 8px 13px;
+            border: 1px solid rgba(255, 255, 255, .55);
+            border-radius: 7px;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .triage-link:hover,
+        .triage-link:focus-visible {
+            background: rgba(255, 255, 255, .16);
+        }
+
+        @keyframes flash {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.18); }
+        }
+
+        .flash {
+            animation: flash 0.5s ease 3;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                padding: 12px;
+            }
+
+            .tv-container {
+                min-height: calc(100vh - 24px);
+            }
+
+            .call-panels {
+                min-height: 0;
+                grid-template-columns: 1fr;
+            }
+
+            .box {
+                min-height: 180px;
+            }
+
+            .history-row {
+                grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr);
+                gap: 8px;
+            }
+
+            .tv-footer {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .history-box {
+                padding: 18px 12px;
+            }
+
+            .history-row {
+                grid-template-columns: minmax(100px, .9fr) minmax(0, 1.1fr);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .flash {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="connection-status" class="connection-status" role="status" aria-live="polite" hidden></div>
+
+    <div class="tv-container">
+
+        <div class="call-panels">
+            <div class="box patient-box">
+                <div class="box-title">PACIENTE / SENHA</div>
+                <div class="patient-name" id="patient-name">AGUARDANDO...</div>
+                <div class="next-call-message" id="next-call-message" aria-live="polite"></div>
+            </div>
+            <div class="box local-box">
+                <div class="box-title">LOCAL DE ATENDIMENTO</div>
+                <div class="local-name" id="local-tipo">--</div>
+            </div>
+        </div>
+
+        <section class="box history-box" aria-labelledby="history-title">
+            <h1 class="box-title" id="history-title">HISTÓRICO DE CHAMADAS</h1>
+            <ul id="history-list" aria-live="polite"></ul>
+        </section>
+
+        <footer class="tv-footer">
+            <div class="brand"><img src="logo.png" alt=""> OASIS | Hospital</div>
+            <span>Chamadas em tempo real</span>
+            <a class="triage-link" href="index.html">Sair</a>
+        </footer>
+    </div>
+
+    <script>
+        let ultimoId = null;
+        let atualizando = false;
+
+        function atualizarChamada(data) {
+            const chamada = data.chamada;
+            const mensagem = document.getElementById("next-call-message");
+
+            if (chamada) {
+                document.getElementById("local-tipo").innerText = chamada.localTipo || "SETOR";
+                document.getElementById("patient-name").innerText = chamada.paciente || "AGUARDANDO...";
+                mensagem.textContent = "";
+
+                if (chamada.id !== ultimoId) {
+                    ultimoId = chamada.id;
+                    const patientBox = document.querySelector(".patient-box");
+                    patientBox.classList.remove("flash");
+                    void patientBox.offsetWidth;
+                    patientBox.classList.add("flash");
+                }
+            } else if (data.proxima) {
+                document.getElementById("local-tipo").innerText = data.proxima.localTipo || "TRIAGEM";
+                document.getElementById("patient-name").innerText =
+                    data.proxima.paciente || "PRÓXIMO PACIENTE";
+                ultimoId = null;
+                mensagem.textContent = "Aguardando a equipe chamar este paciente";
+            } else {
+                document.getElementById("local-tipo").innerText = "AGUARDANDO";
+                document.getElementById("patient-name").innerText = "AGUARDANDO...";
+                ultimoId = null;
+                mensagem.textContent = "Aguardando chegada de pacientes";
+            }
+        }
+
+        // Função criada para buscar a chamada atual
+        // e o histórico da TV em tempo real.
+        function atualizar() {
+            if (atualizando) return;
+            atualizando = true;
+            fetch("/tv/chamada", { cache: "no-store" })
+                .then(async response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro ao carregar chamadas (HTTP ${response.status}).`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById("connection-status").hidden = true;
+                    const historico = data.historico || [];
+                    const fila = data.fila || [];
+
+                    atualizarChamada(data);
+
+                    // Atualiza o histórico
+                    const list =
+                        document.getElementById("history-list");
+
+                    list.innerHTML = "";
+
+                    const idsFila = new Set(fila.map(chamada => String(chamada.id)));
+                    const itens = [
+                        ...fila.map(chamada => ({ ...chamada, aguardando: true })),
+                        ...historico.filter(chamada => !idsFila.has(String(chamada.id)))
+                            .slice(0, Math.max(0, 4 - fila.length))
+                    ];
+
+                    itens.forEach(h => {
+                        const li = document.createElement("li");
+                        const timestamp = h.chamadaEm ? new Date(h.chamadaEm) : null;
+                        const horario = timestamp && !Number.isNaN(timestamp.getTime())
+                            ? timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                            : "--:--";
+                        const risco = String(h.risco || "").toLowerCase();
+                        const riscos = {
+                            verde: "Verde",
+                            amarelo: "Amarelo",
+                            vermelho: "Vermelho"
+                        };
+
+                        [
+                            ["Paciente / senha", `${h.paciente || "Paciente"} · ${h.localNumero || "--"}`],
+                            ["Local", h.localTipo || "Não informado"],
+                            ["Horário", horario],
+                            ["Risco", riscos[risco] || "Não classificado"]
+                        ].forEach(([label, value]) => {
+                            const row = document.createElement("div");
+                            row.className = "history-row";
+
+                            const labelElement = document.createElement("span");
+                            labelElement.className = "history-label";
+                            labelElement.textContent = label;
+
+                            const valueElement = document.createElement("span");
+                            valueElement.className = "history-value";
+                            valueElement.textContent = value;
+                            if (label === "Horário") valueElement.classList.add("history-time");
+                            if (label === "Risco") {
+                                valueElement.classList.add("history-risk");
+                                valueElement.dataset.risk = risco;
+                            }
+
+                            row.append(labelElement, valueElement);
+                            li.appendChild(row);
+                        });
+
+                        list.appendChild(li);
+                    });
+                })
+                .catch(err => {
+                    const status = document.getElementById("connection-status");
+                    status.textContent = `Não foi possível atualizar a TV: ${err.message}`;
+                    status.hidden = false;
+                })
+                .finally(() => {
+                    atualizando = false;
+                });
+        }
+
+        // Primeira atualização
+        atualizar();
+
+        // Atualiza a fila e a chamada em tempo real.
+        setInterval(atualizar, 1000);
+    </script>
+
+</body>
+</html>

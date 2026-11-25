@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fcf4f1">
+  <title>Oasis Hospital | Painel médico</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header class="site-header">
+  <a class="brand" href="medico.html" aria-label="Oasis Hospital, painel médico">
+    <img src="logo.png" alt="">
+    <span><span class="brand-name">OASIS</span><span class="brand-subtitle">Hospital</span></span>
+  </a>
+  <span class="page-kicker">Equipe médica</span>
+  <a class="header-link" href="index.html">Sair</a>
+</header>
+
+<div class="container">
+
+  <span class="page-kicker">Atendimento clínico</span>
+  <h2>Painel Médico</h2>
+  <button id="verMedicacoes" type="button" onclick="window.location.href='medicacoes.html'">
+    Ver medicações prescritas
+  </button>
+
+  <div id="triagens"></div>
+
+  <hr>
+
+  <h3>Consulta</h3>
+
+  <div id="dadosPacienteConsulta" class="card" aria-live="polite">
+    Chame o próximo paciente ou selecione um paciente para visualizar os dados da triagem.
+  </div>
+
+  <input id="paciente" placeholder="Paciente" readonly>
+  <input id="cpfPaciente" placeholder="CPF do paciente" readonly>
+
+  <input id="diagnostico" placeholder="Diagnóstico" required>
+
+  <select id="medicacao">
+    <option value="">Selecione a medicação</option>
+  </select>
+
+  <button id="chamarConsulta" type="button" onclick="chamarProximoPaciente()">
+    Chamar próximo paciente para consulta
+  </button>
+  <p>Ao chamar outro paciente, a consulta atual será salva se o diagnóstico e a medicação estiverem preenchidos.</p>
+  <p id="mensagemChamada" aria-live="polite"></p>
+
+</div>
+
+<script>
+
+let triagensCarregadas = [];
+let triagemSelecionada = null;
+let pacienteChamadoId = null;
+
+function adicionarCampo(card, rotulo, valor) {
+  const paragrafo = document.createElement("p");
+  const titulo = document.createElement("b");
+  titulo.textContent = `${rotulo}: `;
+  paragrafo.append(titulo, document.createTextNode(valor));
+  card.appendChild(paragrafo);
+}
+
+function carregar() {
+  return fetch("/triagens")
+    .then(r => {
+      if (!r.ok) throw new Error("Não foi possível carregar as triagens.");
+      return r.json();
+    })
+    .then(data => {
+      triagensCarregadas = data.filter(t => t.status !== "atendido");
+
+      const div = document.getElementById("triagens");
+      div.innerHTML = "";
+
+      triagensCarregadas.forEach((t, index) => {
+        const card = document.createElement("div");
+        card.className = "card triage-card";
+        const titulo = document.createElement("h3");
+        titulo.textContent = t.nome || "Paciente";
+        card.appendChild(titulo);
+        adicionarCampo(card, "CPF", t.cpf || "Não informado");
+        adicionarCampo(card, "Idade", t.idade == null ? "Não informada" : `${t.idade} anos`);
+        const sintomas = Array.isArray(t.sintomas)
+          ? t.sintomas.filter(Boolean).join(", ")
+          : t.sintoma;
+        adicionarCampo(card, "Sintomas", sintomas || "Não informado");
+        adicionarCampo(card, "Alergias", t.alergia || "Nenhuma informada");
+        adicionarCampo(card, "Temperatura", t.temperatura == null ? "Não informada" : `${t.temperatura}°C`);
+        adicionarCampo(card, "Pressão arterial", t.pressao || "Não informada");
+        adicionarCampo(card, "Altura", t.altura == null ? "Não informada" : `${t.altura} cm`);
+        adicionarCampo(card, "Peso", t.peso == null ? "Não informado" : `${t.peso} kg`);
+        adicionarCampo(card, "Observação da triagem", t.observacao || "Nenhuma");
+
+        const risco = document.createElement("span");
+        risco.className = ["vermelho", "amarelo", "verde"].includes(t.risco) ? t.risco : "";
+        risco.textContent = `Risco: ${t.risco || "Não classificado"}`;
+        card.appendChild(risco);
+
+        const botao = document.createElement("button");
+        botao.textContent = "Atender";
+        botao.addEventListener("click", () => selecionar(index));
+        card.appendChild(botao);
+        div.appendChild(card);
+      });
+      if (!triagensCarregadas.length) {
+        div.textContent = "Não há pacientes aguardando atendimento.";
+      }
+    })
+    .catch(error => {
+      document.getElementById("triagens").textContent = error.message;
+    });
+}
+
+async function chamarProximoPaciente() {
+  const botao = document.getElementById("chamarConsulta");
+  const mensagem = document.getElementById("mensagemChamada");
+  botao.disabled = true;
+  mensagem.textContent = "";
+
+  let consultaSalva = false;
+
+  try {
+    if (pacienteChamadoId !== null) {
+      if (String(triagemSelecionada) !== String(pacienteChamadoId)) {
+        throw new Error("Selecione o paciente da consulta ativa antes de chamar o próximo.");
+      }
+      await salvarConsultaAtual();
+      consultaSalva = true;
+    }
+
+    const response = await fetch("/tv/chamar-proximo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ etapa: "CONSULTA" })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.erro || "Não foi possível chamar o próximo paciente.");
+
+    const index = triagensCarregadas.findIndex(t =>
+      String(t.id) === String(data.chamada.triagemId)
+    );
+    if (index >= 0) {
+      selecionar(index);
+    } else {
+      await carregar();
+      const indiceAtualizado = triagensCarregadas.findIndex(t =>
+        String(t.id) === String(data.chamada.triagemId)
+      );
+      if (indiceAtualizado < 0) {
+        throw new Error("Paciente chamado, mas não foi possível carregar os dados da triagem.");
+      }
+      selecionar(indiceAtualizado);
+    }
+    pacienteChamadoId = data.chamada.triagemId;
+    mensagem.textContent = consultaSalva
+      ? `Consulta anterior salva. Paciente ${data.chamada.nome} chamado para consulta na TV.`
+      : `Paciente ${data.chamada.nome} chamado para consulta na TV.`;
+  } catch (error) {
+    mensagem.textContent = consultaSalva
+      ? `Consulta salva, mas não foi possível chamar o próximo paciente: ${error.message}`
+      : error.message;
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function recuperarConsultaAtiva() {
+  const response = await fetch("/tv/chamada", { cache: "no-store" });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.erro || "Não foi possível verificar a consulta ativa.");
+  }
+  if (!data.chamada || data.chamada.localTipo !== "CONSULTA") return;
+
+  const indice = triagensCarregadas.findIndex(triagem =>
+    String(triagem.id) === String(data.chamada.triagemId)
+  );
+  if (indice < 0) {
+    document.getElementById("mensagemChamada").textContent =
+      "Há uma consulta ativa, mas não foi possível localizar a triagem correspondente.";
+    return;
+  }
+
+  selecionar(indice);
+  pacienteChamadoId = data.chamada.triagemId;
+  document.getElementById("mensagemChamada").textContent =
+    "Consulta ativa recuperada. Preencha o diagnóstico e a medicação para finalizar e chamar o próximo paciente.";
+}
+
+function selecionar(index) {
+  const t = triagensCarregadas[index];
+  if (!t) return;
+
+  triagemSelecionada = t.id;
+
+  document.getElementById("paciente").value = t.nome;
+  document.getElementById("cpfPaciente").value = t.cpf || "";
+
+  const dados = document.getElementById("dadosPacienteConsulta");
+  dados.innerHTML = "";
+  const titulo = document.createElement("h4");
+  titulo.textContent = t.nome || "Paciente";
+  dados.appendChild(titulo);
+  adicionarCampo(dados, "CPF", t.cpf || "Não informado");
+  const sintomas = Array.isArray(t.sintomas)
+    ? t.sintomas.filter(Boolean).join(", ")
+    : t.sintoma;
+  adicionarCampo(dados, "Sintomas", sintomas || "Não informado");
+  adicionarCampo(dados, "Alergias", t.alergia || "Nenhuma informada");
+  adicionarCampo(dados, "Idade", t.idade == null ? "Não informada" : `${t.idade} anos`);
+  adicionarCampo(dados, "Risco", t.risco || "Não classificado");
+
+  if (t.alergia && t.alergia !== "Nenhuma") {
+    alert("⚠️ Paciente possui alergia: " + t.alergia);
+  }
+}
+
+function carregarMedicacoes() {
+  fetch("/lista-medicacoes")
+    .then(r => {
+      if (!r.ok) throw new Error("Não foi possível carregar as medicações.");
+      return r.json();
+    })
+    .then(data => {
+      const select = document.getElementById("medicacao");
+
+      select.innerHTML = `
+        <option value="">Selecione a medicação</option>
+      `;
+
+      data.forEach(med => {
+        const option = document.createElement("option");
+        option.value = med;
+        option.textContent = med;
+        select.appendChild(option);
+      });
+    })
+    .catch(error => alert(error.message));
+}
+
+async function salvarConsultaAtual() {
+  const paciente = document.getElementById("paciente").value.trim();
+  const cpf = document.getElementById("cpfPaciente").value.trim();
+  const diagnostico = document.getElementById("diagnostico").value.trim();
+  const medicacao = document.getElementById("medicacao").value;
+
+  if (!paciente) {
+    throw new Error("Selecione um paciente para finalizar a consulta.");
+  }
+
+  if (!medicacao) {
+    throw new Error("Selecione uma medicação.");
+  }
+  if (!diagnostico) {
+    throw new Error("Informe o diagnóstico.");
+  }
+  if (!triagemSelecionada) {
+    throw new Error("Selecione uma triagem para vincular a consulta.");
+  }
+
+  const response = await fetch("/consulta", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      paciente,
+      cpf,
+      diagnostico,
+      medicacao,
+      triagemId: triagemSelecionada
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.erro || "Não foi possível salvar a consulta.");
+  }
+
+  document.getElementById("diagnostico").value = "";
+  document.getElementById("medicacao").value = "";
+  document.getElementById("paciente").value = "";
+  document.getElementById("cpfPaciente").value = "";
+  document.getElementById("dadosPacienteConsulta").textContent =
+    "Consulta finalizada. Chame o próximo paciente para visualizar os dados da triagem.";
+  triagemSelecionada = null;
+  pacienteChamadoId = null;
+  await carregar();
+  return data;
+}
+
+carregar().then(recuperarConsultaAtiva).catch(error => {
+  document.getElementById("mensagemChamada").textContent = error.message;
+});
+carregarMedicacoes();
+window.setInterval(carregar, 10000);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fcf4f1">
+  <title>Oasis Hospital | Triagem</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .patient-summary {
+      margin: 16px 0;
+      padding: 16px;
+      border: 1px solid #f0d7d1;
+      border-radius: 14px;
+      background: linear-gradient(120deg, #fff5f1, #fffdfa);
+    }
+    .patient-summary p { margin: 6px 0; }
+    .symptom-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .symptom-row input { flex: 1; }
+    .symptom-row button {
+      width: auto;
+      flex: 0 0 auto;
+      padding: 12px 16px;
+    }
+    .status-message {
+      min-height: 1.4em;
+      color: #475569;
+    }
+    .field-label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+    .field-label input,
+    .field-label textarea {
+      margin-top: 5px;
+      font-weight: 400;
+    }
+    .measurements {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 520px) {
+      .measurements { grid-template-columns: 1fr; }
+      .symptom-row { align-items: stretch; flex-direction: column; }
+      .symptom-row button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="triagem.html" aria-label="Oasis Hospital, triagem">
+    <img src="logo.png" alt="">
+    <span><span class="brand-name">OASIS</span><span class="brand-subtitle">Hospital</span></span>
+  </a>
+  <span class="page-kicker">Equipe de triagem</span>
+  <a class="header-link" href="index.html">Sair</a>
+</header>
+<main class="container">
+  <span class="page-kicker">Acolhimento e classificação</span>
+  <h2>Triagem hospitalar</h2>
+  <section class="patient-summary" aria-live="polite">
+    <p><strong>Paciente chamado:</strong> <span id="nomePaciente">Aguardando chamada</span></p>
+    <p><strong>Idade:</strong> <span id="idadePaciente">--</span></p>
+  </section>
+
+  <form id="formTriagem">
+    <input id="pacienteId" type="hidden">
+
+    <label class="field-label" for="temperatura">Temperatura (°C)
+      <input id="temperatura" type="number" min="25" max="45" step="0.1" inputmode="decimal">
+    </label>
+    <label class="field-label">Sintomas (opcional)
+      <div id="listaSintomas"></div>
+    </label>
+    <datalist id="sugestoesSintomas">
+      <option value="Dor leve"></option>
+      <option value="Resfriado"></option>
+      <option value="Coriza"></option>
+      <option value="Tosse"></option>
+      <option value="Febre"></option>
+      <option value="Vômito"></option>
+      <option value="Diarreia"></option>
+      <option value="Falta de ar moderada"></option>
+      <option value="Falta de ar grave"></option>
+      <option value="Suspeita de infarto"></option>
+      <option value="Suspeita de AVC"></option>
+      <option value="Convulsão"></option>
+      <option value="Hemorragia"></option>
+    </datalist>
+    <button id="adicionarSintoma" type="button">Adicionar outro sintoma</button>
+
+    <label class="field-label" for="alergia">Alergias
+      <input id="alergia" type="text">
+    </label>
+
+    <div class="measurements">
+      <label class="field-label" for="pressao">Pressão arterial
+        <input id="pressao" type="text" inputmode="numeric" placeholder="Ex.: 120/80">
+      </label>
+      <label class="field-label" for="altura">Altura (cm)
+        <input id="altura" type="number" min="1" max="250" step="0.1" inputmode="decimal">
+      </label>
+      <label class="field-label" for="peso">Peso (kg)
+        <input id="peso" type="number" min="0.1" max="500" step="0.1" inputmode="decimal">
+      </label>
+    </div>
+
+    <label class="field-label" for="observacao">Observações (opcional)
+      <textarea id="observacao"></textarea>
+    </label>
+    <p id="mensagem" class="status-message" aria-live="polite"></p>
+    <button id="chamarProximo" type="submit" disabled>Finalizar triagem</button>
+  </form>
+
+</main>
+
+<script>
+const form = document.getElementById("formTriagem");
+const message = document.getElementById("mensagem");
+const nextButton = document.getElementById("chamarProximo");
+
+function definirCamposAtivos(ativo) {
+  form.querySelectorAll("input, textarea, button").forEach(campo => {
+    if (campo.id !== "chamarProximo") campo.disabled = !ativo;
+  });
+  nextButton.disabled = !ativo;
+}
+
+function limparCamposTriagem() {
+  document.getElementById("temperatura").value = "";
+  document.getElementById("alergia").value = "";
+  document.getElementById("pressao").value = "";
+  document.getElementById("altura").value = "";
+  document.getElementById("peso").value = "";
+  document.getElementById("observacao").value = "";
+  const lista = document.getElementById("listaSintomas");
+  lista.replaceChildren();
+  adicionarCampoSintoma();
+}
+
+function adicionarCampoSintoma() {
+  const linha = document.createElement("div");
+  linha.className = "symptom-row";
+  const input = document.createElement("input");
+  input.className = "sintoma";
+  input.type = "text";
+  input.setAttribute("list", "sugestoesSintomas");
+  input.placeholder = "Digite um sintoma";
+  linha.appendChild(input);
+
+  const lista = document.getElementById("listaSintomas");
+  if (lista.children.length > 0) {
+    const remover = document.createElement("button");
+    remover.type = "button";
+    remover.textContent = "Remover";
+    remover.addEventListener("click", () => linha.remove());
+    linha.appendChild(remover);
+  }
+  lista.appendChild(linha);
+}
+
+function mostrarChamada(chamada) {
+  document.getElementById("nomePaciente").textContent = chamada.paciente || "Paciente";
+  document.getElementById("idadePaciente").textContent =
+    chamada.idade == null ? "Não informada" : `${chamada.idade} anos`;
+  document.getElementById("pacienteId").value = chamada.pacienteId || "";
+  nextButton.textContent = "Finalizar triagem";
+  nextButton.hidden = false;
+  definirCamposAtivos(true);
+}
+
+async function carregarChamada() {
+  try {
+    const response = await fetch("/tv/chamada");
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.erro || "Não foi possível carregar a fila.");
+
+    if (data.chamada && data.chamada.localTipo === "TRIAGEM") {
+      if (String(data.chamada.id) !== document.getElementById("pacienteId").dataset.chamadaId) {
+        limparCamposTriagem();
+        mostrarChamada(data.chamada);
+        document.getElementById("pacienteId").dataset.chamadaId = data.chamada.id;
+        message.textContent = "Paciente chamado para triagem.";
+      }
+      return;
+    }
+
+    if (data.chamada && data.chamada.localTipo === "CONSULTA") {
+      definirCamposAtivos(false);
+      document.getElementById("nomePaciente").textContent = data.chamada.paciente;
+      document.getElementById("idadePaciente").textContent =
+        data.chamada.idade == null ? "Não informada" : `${data.chamada.idade} anos`;
+      message.textContent =
+        "Há uma chamada ativa para consulta médica. Finalize-a no painel médico para liberar a triagem.";
+      document.getElementById("pacienteId").value = "";
+      nextButton.hidden = true;
+      return;
+    }
+
+    document.getElementById("nomePaciente").textContent = "Aguardando chamada";
+    document.getElementById("idadePaciente").textContent = "--";
+    document.getElementById("pacienteId").value = "";
+    definirCamposAtivos(false);
+    nextButton.textContent = "Chamar próximo paciente";
+    nextButton.hidden = !(data.fila || []).some(item => item.localTipo === "TRIAGEM");
+    nextButton.disabled = nextButton.hidden;
+    if (!nextButton.hidden) {
+      message.textContent = "Há pacientes aguardando triagem. Chame o próximo paciente para continuar.";
+    } else {
+      message.textContent = "Nenhum paciente aguardando triagem.";
+    }
+  } catch (error) {
+    message.textContent = error.message;
+  }
+}
+
+document.getElementById("adicionarSintoma").addEventListener("click", adicionarCampoSintoma);
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+  const pacienteId = document.getElementById("pacienteId").value;
+  if (!pacienteId) {
+    nextButton.disabled = true;
+    try {
+      const response = await fetch("/tv/chamar-proximo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etapa: "TRIAGEM" })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.erro || "Não foi possível chamar o próximo paciente.");
+
+      limparCamposTriagem();
+      mostrarChamada({
+        id: data.chamada.id,
+        pacienteId: data.chamada.pacienteId,
+        paciente: data.chamada.nome,
+        idade: data.chamada.idade
+      });
+      document.getElementById("pacienteId").dataset.chamadaId = data.chamada.id;
+      message.textContent = "Paciente chamado para triagem.";
+    } catch (error) {
+      message.textContent = error.message;
+      nextButton.disabled = false;
+    }
+    return;
+  }
+
+  message.textContent = "";
+  nextButton.disabled = true;
+
+  const sintomas = [...document.querySelectorAll(".sintoma")]
+    .map(input => input.value.trim())
+    .filter(Boolean);
+  const valorOpcional = id => document.getElementById(id).value || null;
+  try {
+    const response = await fetch("/triagem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pacienteId,
+        temperatura: valorOpcional("temperatura"),
+        sintomas,
+        alergia: document.getElementById("alergia").value.trim(),
+        pressao: document.getElementById("pressao").value.trim(),
+        altura: valorOpcional("altura"),
+        peso: valorOpcional("peso"),
+        observacao: document.getElementById("observacao").value.trim()
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.erro || "Não foi possível finalizar a triagem.");
+
+    limparCamposTriagem();
+    document.getElementById("pacienteId").dataset.chamadaId = "";
+    if (data.proximaChamada) {
+      mostrarChamada({
+        id: data.proximaChamada.id,
+        pacienteId: data.proximaChamada.pacienteId,
+        paciente: data.proximaChamada.nome,
+        idade: data.proximaChamada.idade
+      });
+      document.getElementById("pacienteId").dataset.chamadaId = data.proximaChamada.id;
+      message.textContent = `${data.triagem.nome} teve a triagem finalizada e foi enviado ao médico. Próximo paciente chamado.`;
+    } else {
+      document.getElementById("nomePaciente").textContent = "Aguardando chamada";
+      document.getElementById("idadePaciente").textContent = "--";
+      document.getElementById("pacienteId").value = "";
+      definirCamposAtivos(false);
+      nextButton.hidden = true;
+      message.textContent = `${data.triagem.nome} teve a triagem finalizada e foi enviado ao médico. Não há outro paciente aguardando.`;
+    }
+  } catch (error) {
+    message.textContent = error.message;
+    nextButton.disabled = false;
+  }
+});
+
+adicionarCampoSintoma();
+definirCamposAtivos(false);
+carregarChamada();
+window.setInterval(() => {
+  if (!document.getElementById("pacienteId").value) carregarChamada();
+}, 3000);
+</script>
+</body>
+</html>

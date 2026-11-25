@@ -1,0 +1,46 @@
+{
+  "usuarios": [
+    {
+      "usuario": "admin",
+      "senha": "1234",
+      "tipo": "admin"
+    },
+    {
+      "usuario": "triagem",
+      "senha": "1234",
+      "tipo": "triagem"
+    },
+    {
+      "usuario": "medico",
+      "senha": "1234",
+      "tipo": "medico"
+    },
+    {
+      "usuario": "atendimento",
+      "senha": "1234",
+      "tipo": "atendimento"
+    },
+    {
+      "usuario": "tv",
+      "senha": "1234",
+      "tipo": "tv"
+    },
+    {
+      "usuario": "medicacoes",
+      "senha": "1234",
+      "tipo": "medicacoes"
+    },
+    {
+      "usuario": "almoxarifado",
+      "senha": "1234",
+      "tipo": "almoxarifado"
+    }
+  ],
+  "pacientes": [],
+  "triagens": [],
+  "consultas": [],
+  "chamadas": [],
+  "estoque": [],
+  "movimentacoesEstoque": [],
+  "tvAguardandoProximoPaciente": true
+}
