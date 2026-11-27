@@ -1,0 +1,29 @@
+{
+  "usuarios": [
+    {
+      "usuario": "triagem",
+      "senha": "1234",
+      "tipo": "triagem"
+    },
+    {
+      "usuario": "medico",
+      "senha": "1234",
+      "tipo": "medico"
+    },
+    {
+      "usuario": "atendimento",
+      "senha": "1234",
+      "tipo": "atendimento"
+    },
+    {
+      "usuario": "tv",
+      "senha": "1234",
+      "tipo": "tv"
+    }
+  ],
+  "pacientes": [],
+  "triagens": [],
+  "consultas": [],
+  "chamadas": [],
+  "tvAguardandoProximoPaciente": true
+}

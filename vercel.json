@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/dashboard-summary",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/usuarios",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/atendimento",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/atendimento/login",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/triagem",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/triagens",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/consulta",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/medicacoes",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/medicacoes/(.*)/recebida",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/lista-medicacoes",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/estoque",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/estoque/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/tv/chamada",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/tv/chamar-proximo",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    }
+  ]
+}
